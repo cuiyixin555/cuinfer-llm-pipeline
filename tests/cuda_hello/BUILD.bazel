@@ -1,0 +1,41 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+genrule(
+    name = "vector_add_object",
+    srcs = [
+        "vector_add.cu",
+        "vector_add.h",
+    ],
+    outs = ["vector_add.o"],
+    cmd = "/usr/local/cuda/bin/nvcc -std=c++17 " +
+          "-gencode arch=compute_75,code=compute_75 " +
+          "-c $(location vector_add.cu) -o $@",
+)
+
+genrule(
+    name = "test_object",
+    srcs = [
+        "main.cc",
+        "vector_add.h",
+    ],
+    outs = ["main.o"],
+    cmd = "g++ -std=c++17 -isystem /usr/local/cuda/include " +
+          "-c $(location main.cc) -o $@",
+)
+
+cc_test(
+    name = "cuda_hello",
+    size = "small",
+    srcs = [
+        ":test_object",
+        ":vector_add_object",
+    ],
+    linkopts = [
+        "-L/usr/local/cuda/lib64",
+        "-Wl,-rpath,/usr/local/cuda/lib64",
+        "-lcudart",
+        "-lgtest",
+        "-lgtest_main",
+        "-pthread",
+    ],
+)

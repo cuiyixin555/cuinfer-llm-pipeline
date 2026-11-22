@@ -1,0 +1,27 @@
+load("@rules_cc//cc:cc_import.bzl", "cc_import")
+
+genrule(
+    name = "build_moe",
+    srcs = [
+        "fused_routing.cu",
+        "fused_routing.h",
+        "fused_routing_common.cuh",
+        "fused_routing_ptx.cu",
+        "moe_ops_stub.cc",
+    ],
+    outs = ["libmoe.so"],
+    cmd = "/usr/local/cuda/bin/nvcc -std=c++17 -shared -Xcompiler -fPIC " +
+          "-gencode arch=compute_80,code=compute_80 " +
+          "$(location fused_routing.cu) $(location fused_routing_ptx.cu) " +
+          "$(location moe_ops_stub.cc) -o $@",
+    visibility = ["//visibility:public"],
+)
+
+cc_import(
+    name = "moe",
+    hdrs = ["fused_routing.h"],
+    shared_library = ":libmoe.so",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["fused_routing.h"])

@@ -1,0 +1,21 @@
+load("@rules_python//python:py_library.bzl", "py_library")
+
+py_library(
+    name = "mhc_python",
+    srcs = [
+        "__init__.py",
+        "mhc.py",
+    ],
+    imports = [".."],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "moe_python",
+    srcs = [
+        "__init__.py",
+        "moe.py",
+    ],
+    imports = [".."],
+    visibility = ["//visibility:public"],
+)

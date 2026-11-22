@@ -1,0 +1,6 @@
+module(name = "cuinfer_llm_pipeline")
+
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "rules_python", version = "1.7.0")
+
+register_toolchains("@rules_python//python/runtime_env_toolchains:all")

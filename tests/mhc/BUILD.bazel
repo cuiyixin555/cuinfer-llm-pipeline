@@ -1,0 +1,120 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+genrule(
+    name = "post_cpp_test_object",
+    srcs = [
+        "mhc_post_test.cc",
+        "mhc_test_utils.h",
+        "//calculator/mhc:mhc_common.h",
+        "//calculator/mhc:mhc_post.h",
+    ],
+    outs = ["mhc_post_test.o"],
+    cmd = "g++ -std=c++17 -I. -isystem /usr/local/cuda/include " +
+          "-c $(location mhc_post_test.cc) -o $@",
+)
+
+genrule(
+    name = "benchmark_object",
+    srcs = [
+        "mhc_benchmark.cc",
+        "//calculator/mhc:mhc_common.h",
+        "//calculator/mhc:mhc_post.h",
+        "//calculator/mhc:mhc_pre.h",
+    ],
+    outs = ["mhc_benchmark.o"],
+    cmd = "g++ -std=c++17 -O2 -I. -isystem /usr/local/cuda/include " +
+          "-c $(location mhc_benchmark.cc) -o $@",
+)
+
+cc_binary(
+    name = "mhc_benchmark",
+    srcs = [":benchmark_object"],
+    deps = ["//calculator/mhc:mhc"],
+    linkopts = [
+        "-L/usr/local/cuda/lib64",
+        "-Wl,-rpath,/usr/local/cuda/lib64",
+        "-lcudart",
+    ],
+)
+
+genrule(
+    name = "pre_cpp_test_object",
+    srcs = [
+        "mhc_pre_big_fuse_test.cc",
+        "mhc_test_utils.h",
+        "//calculator/mhc:mhc_common.h",
+        "//calculator/mhc:mhc_pre.h",
+    ],
+    outs = ["mhc_pre_big_fuse_test.o"],
+    cmd = "g++ -std=c++17 -I. -isystem /usr/local/cuda/include " +
+          "-c $(location mhc_pre_big_fuse_test.cc) -o $@",
+)
+
+MHC_TEST_LINKOPTS = [
+    "-L/usr/local/cuda/lib64",
+    "-Wl,-rpath,/usr/local/cuda/lib64",
+    "-lcudart",
+    "-lgtest",
+    "-lgtest_main",
+    "-pthread",
+]
+
+cc_test(
+    name = "mhc_post_cpp_test",
+    size = "medium",
+    srcs = [":post_cpp_test_object"],
+    deps = ["//calculator/mhc:mhc"],
+    linkopts = MHC_TEST_LINKOPTS,
+)
+
+cc_test(
+    name = "mhc_pre_big_fuse_cpp_test",
+    size = "medium",
+    srcs = [":pre_cpp_test_object"],
+    deps = ["//calculator/mhc:mhc"],
+    linkopts = MHC_TEST_LINKOPTS,
+)
+
+test_suite(
+    name = "mhc_cpp_test",
+    tests = [
+        ":mhc_post_cpp_test",
+        ":mhc_pre_big_fuse_cpp_test",
+    ],
+)
+
+py_test(
+    name = "mhc_post_python_test",
+    size = "medium",
+    srcs = [
+        "mhc_test_utils.py",
+        "test_mhc_post.py",
+    ],
+    data = ["//calculator/mhc:libmhc.so"],
+    imports = ["."],
+    main = "test_mhc_post.py",
+    deps = ["//python/cuinfer_llm:mhc_python"],
+)
+
+py_test(
+    name = "mhc_pre_big_fuse_python_test",
+    size = "medium",
+    srcs = [
+        "mhc_test_utils.py",
+        "test_mhc_pre_big_fuse.py",
+    ],
+    data = ["//calculator/mhc:libmhc.so"],
+    imports = ["."],
+    main = "test_mhc_pre_big_fuse.py",
+    deps = ["//python/cuinfer_llm:mhc_python"],
+)
+
+test_suite(
+    name = "mhc_python_test",
+    tests = [
+        ":mhc_post_python_test",
+        ":mhc_pre_big_fuse_python_test",
+    ],
+)

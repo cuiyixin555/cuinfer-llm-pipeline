@@ -1,0 +1,45 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+genrule(
+    name = "fused_routing_test_object",
+    srcs = [
+        "fused_routing_test.cc",
+        "//calculator/moe:fused_routing.h",
+    ],
+    outs = ["fused_routing_test.o"],
+    cmd = "g++ -std=c++17 -I. -isystem /usr/local/cuda/include " +
+          "-c $(location fused_routing_test.cc) -o $@",
+)
+
+cc_test(
+    name = "fused_routing_cpp_test",
+    size = "medium",
+    srcs = [":fused_routing_test_object"],
+    deps = ["//calculator/moe:moe"],
+    linkopts = [
+        "-L/usr/local/cuda/lib64",
+        "-Wl,-rpath,/usr/local/cuda/lib64",
+        "-lcudart",
+        "-lgtest",
+        "-lgtest_main",
+        "-pthread",
+    ],
+)
+
+py_test(
+    name = "fused_routing_python_test",
+    size = "medium",
+    srcs = ["test_fused_routing.py"],
+    data = ["//calculator/moe:libmoe.so"],
+    main = "test_fused_routing.py",
+    deps = ["//python/cuinfer_llm:moe_python"],
+)
+
+test_suite(
+    name = "fused_routing_test",
+    tests = [
+        ":fused_routing_cpp_test",
+        ":fused_routing_python_test",
+    ],
+)

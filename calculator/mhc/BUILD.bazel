@@ -1,0 +1,40 @@
+load("@rules_cc//cc:cc_import.bzl", "cc_import")
+
+genrule(
+    name = "build_mhc",
+    srcs = [
+        "mhc_common.h",
+        "mhc_launch_utils.h",
+        "mhc_ops_stub.cc",
+        "mhc_post.cu",
+        "mhc_post.h",
+        "mhc_post_ptx.cu",
+        "mhc_pre.cu",
+        "mhc_pre.h",
+        "mhc_pre_ptx.cu",
+    ],
+    outs = ["libmhc.so"],
+    cmd = "/usr/local/cuda/bin/nvcc -std=c++17 -shared -Xcompiler -fPIC " +
+          "-gencode arch=compute_80,code=compute_80 " +
+          "$(location mhc_post.cu) $(location mhc_post_ptx.cu) " +
+          "$(location mhc_pre.cu) $(location mhc_pre_ptx.cu) " +
+          "$(location mhc_ops_stub.cc) -o $@",
+    visibility = ["//visibility:public"],
+)
+
+cc_import(
+    name = "mhc",
+    hdrs = [
+        "mhc_common.h",
+        "mhc_post.h",
+        "mhc_pre.h",
+    ],
+    shared_library = ":libmhc.so",
+    visibility = ["//visibility:public"],
+)
+
+exports_files([
+    "mhc_common.h",
+    "mhc_post.h",
+    "mhc_pre.h",
+])
